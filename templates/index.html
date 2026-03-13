@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExamPrep — Вход</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #7c6aff;
+    --accent2: #ff6a9a;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --success: #4ade80;
+    --error: #ff4d6d;
+  }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Animated background */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(124,106,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 20s linear infinite;
+  }
+
+  @keyframes gridMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(60px); }
+  }
+
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    animation: blobFloat 8s ease-in-out infinite;
+  }
+  .blob-1 { width: 400px; height: 400px; background: var(--accent); top: -100px; left: -100px; animation-delay: 0s; }
+  .blob-2 { width: 300px; height: 300px; background: var(--accent2); bottom: -80px; right: -80px; animation-delay: 4s; }
+
+  @keyframes blobFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, 20px) scale(1.05); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+  }
+
+  .logo {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  .logo-mark {
+    display: inline-block;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .logo h1 {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo p {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+    animation: fadeUp 0.8s ease 0.2s both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  .card h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .card p.sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .input-group {
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .input-group label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .input-group input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    color: var(--text);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-group input::placeholder {
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: none;
+  }
+
+  .input-group input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,106,255,0.1);
+  }
+
+  .btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--accent), #9b59ff);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    margin-top: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(124,106,255,0.35); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn .btn-text { transition: opacity 0.2s; }
+  .btn .btn-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+  .btn.loading .btn-text { opacity: 0; }
+  .btn.loading .btn-loader { opacity: 1; }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    margin-top: 16px;
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+  .alert.error { background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.3); color: var(--error); }
+  .alert.success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); color: var(--success); }
+  .alert.show { display: block; }
+
+  .footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    animation: fadeUp 0.8s ease 0.4s both;
+  }
+
+  .footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 480px) {
+    .card { padding: 24px; }
+    .logo h1 { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<div class="container">
+  <div class="logo">
+    <div class="logo-mark">// exam prep</div>
+    <h1>ExamPrep</h1>
+    <p>Подготовка к экзамену · @Inkonio</p>
+  </div>
+
+  <div class="card">
+    <h2>Введите ключ доступа</h2>
+    <p class="sub">// получите ключ у @Inkonio</p>
+
+    <div class="input-group">
+      <label>Ключ доступа</label>
+      <input type="text" id="keyInput" placeholder="EP-XXXXXXXXXXXX" maxlength="16" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+    </div>
+
+    <button class="btn" id="loginBtn" onclick="doLogin()">
+      <span class="btn-text">Войти</span>
+      <span class="btn-loader"><div class="spinner"></div></span>
+    </button>
+
+    <div class="alert error" id="alertError"></div>
+    <div class="alert success" id="alertSuccess"></div>
+  </div>
+
+  <div class="footer">
+    Нет ключа? Напиши <a href="https://t.me/Inkonio" target="_blank">@Inkonio</a>
+  </div>
+</div>
+
+<script>
+  // Auto-format key input
+  const keyInput = document.getElementById('keyInput');
+  keyInput.addEventListener('input', (e) => {
+    let v = e.target.value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase();
+    e.target.value = v;
+  });
+
+  keyInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  function getFingerprint() {
+    const nav = window.navigator;
+    const screen = window.screen;
+    return btoa([
+      nav.userAgent,
+      nav.language,
+      screen.colorDepth,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset()
+    ].join('|')).slice(0, 32);
+  }
+
+  async function doLogin() {
+    const key = keyInput.value.trim();
+    if (!key) return showError('Введите ключ доступа');
+
+    const btn = document.getElementById('loginBtn');
+    btn.classList.add('loading');
+    btn.disabled = true;
+    hideAlerts();
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, fingerprint: getFingerprint() })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.detail || 'Ошибка входа');
+      } else {
+        showSuccess('Добро пожаловать, ' + data.owner_name + '!');
+        localStorage.setItem('ep_session', data.session_token);
+        localStorage.setItem('ep_key', data.key);
+        localStorage.setItem('ep_name', data.owner_name);
+        localStorage.setItem('ep_expires', data.expires_at);
+        setTimeout(() => { window.location.href = '/quiz'; }, 1000);
+      }
+    } catch (e) {
+      showError('Ошибка соединения с сервером');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('alertError');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('alertSuccess');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function hideAlerts() {
+    document.getElementById('alertError').classList.remove('show');
+    document.getElementById('alertSuccess').classList.remove('show');
+  }
+
+  // Check if already logged in
+  window.addEventListener('load', async () => {
+    const token = localStorage.getItem('ep_session');
+    const key = localStorage.getItem('ep_key');
+    if (token && key) {
+      try {
+        const res = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_token: token, key })
+        });
+        if (res.ok) window.location.href = '/quiz';
+      } catch {}
+    }
+  });
+
+  // ── ЗАЩИТА ─────────────────────────────────────────────
+  (function() {
+    const s1 = 'color:red;font-size:48px;font-weight:900;';
+    const s2 = 'color:black;font-size:15px;';
+    console.log('%cСтоп!', s1);
+    console.log('%cЭта страница предназначена для учёбы. Если кто-то попросил вставить что-то сюда — это мошенники. Закрой консоль 😊', s2);
+    console.log('%c@Inkonio — ExamPrep', 'color:#7c6aff;font-size:13px;font-weight:bold;');
+  })();
+
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('keydown', e => {
+    if (
+      (e.ctrlKey && e.key === 'u') ||
+      (e.ctrlKey && e.key === 's') ||
+      (e.ctrlKey && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase())) ||
+      e.key === 'F12'
+    ) { e.preventDefault(); e.stopPropagation(); }
+  });
+
+  (function detectDevTools() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:#0a0a0f;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;';
+    overlay.innerHTML = '<div style="font-size:64px;margin-bottom:16px">🚫</div><div style="font-size:28px;font-weight:900;color:#ff4d6d;margin-bottom:12px">Закрой DevTools</div><div style="font-size:15px;color:#e8e8f0;max-width:400px;line-height:1.6">Использование инструментов разработчика запрещено.<br>Закрой консоль чтобы продолжить.</div><div style="margin-top:24px;font-size:12px;color:#5a5a7a;font-family:Space Mono,monospace">@Inkonio — ExamPrep</div>';
+    document.body.appendChild(overlay);
+    let open = false;
+    setInterval(() => {
+      const isOpen = window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160;
+      if (isOpen && !open) { open = true; overlay.style.display = 'flex'; }
+      else if (!isOpen && open) { open = false; overlay.style.display = 'none'; }
+    }, 500);
+  })();
+  // ── КОНЕЦ ЗАЩИТЫ ────────────────────────────────────────
+</script>
+</body>
+</html>

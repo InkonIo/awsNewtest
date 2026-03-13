@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExamPrep — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --border: #1e1e2e;
+    --accent: #7c6aff; --accent2: #ff6a9a; --text: #e8e8f0;
+    --muted: #5a5a7a; --success: #4ade80; --error: #ff4d6d; --warning: #fbbf24;
+  }
+  body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* LOGIN SCREEN */
+  .login-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .login-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 36px; width: 100%; max-width: 380px; position: relative; overflow: hidden;
+  }
+  .login-card::before {
+    content:''; position:absolute; top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+  }
+  .login-card h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .login-card p { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; margin-bottom: 24px; }
+
+  /* ADMIN LAYOUT */
+  .admin-wrap { display: none; }
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.95); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border); padding: 0 24px;
+    height: 56px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-title { font-weight: 800; font-size: 16px; }
+  .header-badge {
+    font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px;
+    padding: 3px 8px; background: rgba(124,106,255,0.15); border: 1px solid rgba(124,106,255,0.3);
+    border-radius: 4px; color: var(--accent);
+  }
+
+  .content { padding: 28px 24px; max-width: 900px; margin: 0 auto; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 20px;
+  }
+  .stat-label { font-size: 10px; font-family: 'Space Mono', monospace; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 800; color: var(--accent); font-family: 'Space Mono', monospace; }
+
+  /* CREATE KEY */
+  .create-section {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 24px;
+  }
+  .section-title {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); font-family: 'Space Mono', monospace; margin-bottom: 16px;
+  }
+  .create-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .field { flex: 1; min-width: 160px; }
+  .field label { display: block; font-size: 10px; letter-spacing: 2px; color: var(--muted); font-family: 'Space Mono', monospace; text-transform: uppercase; margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; font-family: 'Space Mono', monospace;
+    font-size: 13px; color: var(--text); outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field select option { background: var(--bg); }
+
+  .btn {
+    padding: 10px 20px; border-radius: 8px; border: none;
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #9b59ff); color: white; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,106,255,0.3); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 6px; font-family: 'Space Mono', monospace; }
+  .btn-danger { background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.3); color: var(--error); }
+  .btn-danger:hover { background: rgba(255,77,109,0.2); }
+  .btn-ok { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); color: var(--success); }
+  .btn-ok:hover { background: rgba(74,222,128,0.2); }
+
+  /* GENERATED KEY */
+  .gen-key-box {
+    margin-top: 16px; padding: 14px 16px; background: rgba(124,106,255,0.08);
+    border: 1px solid rgba(124,106,255,0.25); border-radius: 8px;
+    font-family: 'Space Mono', monospace; font-size: 15px;
+    display: flex; align-items: center; justify-content: space-between;
+    display: none; animation: fadeUp 0.3s ease;
+  }
+  .gen-key-box.show { display: flex; }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--muted); padding: 4px 10px; font-family: 'Space Mono', monospace;
+    font-size: 11px; cursor: pointer; transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* TABLE */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); font-family: 'Space Mono', monospace;
+    padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(30,30,46,0.5); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.01); }
+
+  .key-code {
+    font-family: 'Space Mono', monospace; font-size: 12px; color: var(--accent);
+    background: rgba(124,106,255,0.1); padding: 3px 8px; border-radius: 4px;
+  }
+
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 4px;
+    font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+  }
+  .badge-active { background: rgba(74,222,128,0.15); color: var(--success); border: 1px solid rgba(74,222,128,0.3); }
+  .badge-inactive { background: rgba(255,77,109,0.15); color: var(--error); border: 1px solid rgba(255,77,109,0.3); }
+  .badge-pending { background: rgba(251,191,36,0.15); color: var(--warning); border: 1px solid rgba(251,191,36,0.3); }
+
+  /* SHARED */
+  input[type=password], input[type=text], input[type=number] {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; font-family: 'Space Mono', monospace;
+    font-size: 14px; color: var(--text); width: 100%; outline: none; transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--accent); }
+
+  .alert { padding: 10px 14px; border-radius: 8px; font-size: 12px; font-family: 'Space Mono', monospace; margin-top: 12px; display: none; }
+  .alert.error { background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.3); color: var(--error); }
+  .alert.show { display: block; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:600px) {
+    .create-row { flex-direction: column; }
+    th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <h1>Admin Panel</h1>
+    <p>// ExamPrep · только для @Inkonio</p>
+    <label style="font-size:10px;letter-spacing:2px;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase;display:block;margin-bottom:6px">Пароль</label>
+    <input type="password" id="adminPass" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    <div class="alert error" id="loginErr"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="doAdminLogin()">Войти</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="admin-wrap" id="adminWrap">
+  <header>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="header-title">ExamPrep Admin</div>
+      <div class="header-badge">// ADMIN</div>
+    </div>
+    <button class="btn btn-sm btn-danger" onclick="adminLogout()">Выйти</button>
+  </header>
+
+  <div class="content">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Всего ключей</div>
+        <div class="stat-value" id="statTotal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Активных</div>
+        <div class="stat-value" id="statActive">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Не активировано</div>
+        <div class="stat-value" id="statPending">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Истекло</div>
+        <div class="stat-value" id="statExpired">—</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px">
+      <button class="btn btn-sm" id="tab-keys" onclick="showAdminTab('keys')" style="background:rgba(124,106,255,.15);border:1px solid rgba(124,106,255,.3);color:var(--accent)">🔑 Ключи</button>
+      <button class="btn btn-sm" id="tab-stats" onclick="showAdminTab('stats')" style="background:var(--surface);border:1px solid var(--border);color:var(--muted)">📊 Аналитика</button>
+      <button class="btn btn-sm" id="tab-logs" onclick="showAdminTab('logs')" style="background:var(--surface);border:1px solid var(--border);color:var(--muted)">📋 Логи</button>
+    </div>
+
+    <!-- KEYS TAB -->
+    <div id="tab-keys-content">
+    <!-- CREATE -->
+    <div class="create-section">
+      <div class="section-title">// создать ключ</div>
+      <div class="create-row">
+        <div class="field">
+          <label>Имя владельца</label>
+          <input type="text" id="newOwner" placeholder="Например: Arman">
+        </div>
+        <div class="field" style="max-width:140px">
+          <label>Дней доступа</label>
+          <input type="number" id="newDays" value="30" min="1" max="365">
+        </div>
+        <button class="btn btn-primary" onclick="createKey()" style="height:42px;margin-top:auto">Создать ключ</button>
+      </div>
+      <div class="gen-key-box" id="genKeyBox">
+        <span id="genKeyVal"></span>
+        <button class="copy-btn" onclick="copyKey()">скопировать</button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="section-title" style="margin-bottom:12px">// все ключи</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ключ</th>
+            <th>Владелец</th>
+            <th>Создан</th>
+            <th>Истекает</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="keysTable">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);font-family:'Space Mono',monospace;font-size:12px;padding:32px">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+    </div><!-- end keys tab -->
+
+    <!-- STATS TAB -->
+    <div id="tab-stats-content" style="display:none">
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:16px">// топ сложных вопросов</div>
+      <div id="statsContent"><div style="text-align:center;padding:32px;color:var(--muted);font-family:'Space Mono',monospace;font-size:12px">Загрузка...</div></div>
+    </div>
+
+    <!-- LOGS TAB -->
+    <div id="tab-logs-content" style="display:none">
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:16px">// последние входы</div>
+      <div id="logsContent"><div style="text-align:center;padding:32px;color:var(--muted);font-family:'Space Mono',monospace;font-size:12px">Загрузка...</div></div>
+    </div>
+  </div>
+
+<script>
+let adminToken = null;
+
+async function doAdminLogin() {
+  const pass = document.getElementById('adminPass').value;
+  if (!pass) return;
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const el = document.getElementById('loginErr');
+      el.textContent = data.detail || 'Неверный пароль';
+      el.classList.add('show');
+    } else {
+      adminToken = data.admin_token;
+      sessionStorage.setItem('admin_token', adminToken);
+      showAdmin();
+    }
+  } catch { alert('Ошибка соединения'); }
+}
+
+function showAdmin() {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('adminWrap').style.display = 'block';
+  loadKeys();
+}
+
+async function loadKeys() {
+  try {
+    const res = await fetch('/api/admin/keys', {
+      headers: { 'X-Admin-Token': adminToken }
+    });
+    const keys = await res.json();
+    renderTable(keys);
+    renderStats(keys);
+  } catch { }
+}
+
+function renderStats(keys) {
+  const now = new Date();
+  document.getElementById('statTotal').textContent = keys.length;
+  document.getElementById('statActive').textContent = keys.filter(k => k.is_active && k.activated_at && new Date(k.expires_at) > now).length;
+  document.getElementById('statPending').textContent = keys.filter(k => !k.activated_at && k.is_active).length;
+  document.getElementById('statExpired').textContent = keys.filter(k => k.expires_at && new Date(k.expires_at) < now).length;
+}
+
+function renderTable(keys) {
+  const tbody = document.getElementById('keysTable');
+  if (!keys.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);font-family:\'Space Mono\',monospace;font-size:12px;padding:32px">Ключей нет</td></tr>';
+    return;
+  }
+  const now = new Date();
+  tbody.innerHTML = keys.map(k => {
+    const created = k.created_at ? new Date(k.created_at).toLocaleDateString('ru') : '—';
+    const expires = k.expires_at ? new Date(k.expires_at).toLocaleDateString('ru') : '—';
+    const isExpired = k.expires_at && new Date(k.expires_at) < now;
+    let badge, badgeText;
+    if (!k.is_active) { badge = 'badge-inactive'; badgeText = 'деактивирован'; }
+    else if (!k.activated_at) { badge = 'badge-pending'; badgeText = 'не активирован'; }
+    else if (isExpired) { badge = 'badge-inactive'; badgeText = 'истёк'; }
+    else { badge = 'badge-active'; badgeText = 'активен'; }
+
+    const lastSeen = k.last_seen ? new Date(k.last_seen).toLocaleDateString('ru') : '—';
+    const timeStr = k.total_time_formatted || '0ч 0м';
+    return `<tr>
+      <td><span class="key-code">${k.key}</span></td>
+      <td style="font-weight:600">${k.owner_name || '—'}</td>
+      <td style="color:var(--muted);font-family:'Space Mono',monospace;font-size:11px">${created}</td>
+      <td style="color:var(--muted);font-family:'Space Mono',monospace;font-size:11px">${expires}</td>
+      <td style="color:var(--muted);font-family:'Space Mono',monospace;font-size:11px" title="Последний вход: ${lastSeen}">${timeStr}</td>
+      <td><span class="badge ${badge}">${badgeText}</span></td>
+      <td>
+        ${k.is_active
+          ? `<button class="btn btn-sm btn-danger" onclick="deactivateKey('${k.key}')">деакт.</button>`
+          : `<button class="btn btn-sm btn-ok" onclick="reactivateKey('${k.key}')">активир.</button>`
+        }
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function createKey() {
+  const owner = document.getElementById('newOwner').value.trim();
+  const days = parseInt(document.getElementById('newDays').value) || 30;
+  if (!owner) { alert('Введите имя владельца'); return; }
+
+  const res = await fetch('/api/admin/keys', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+    body: JSON.stringify({ owner_name: owner, days })
+  });
+  const data = await res.json();
+  if (data.success) {
+    const box = document.getElementById('genKeyBox');
+    document.getElementById('genKeyVal').textContent = data.key;
+    box.classList.add('show');
+    document.getElementById('newOwner').value = '';
+    loadKeys();
+  }
+}
+
+function copyKey() {
+  const key = document.getElementById('genKeyVal').textContent;
+  navigator.clipboard.writeText(key).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'скопировано!';
+    setTimeout(() => btn.textContent = 'скопировать', 2000);
+  });
+}
+
+async function deactivateKey(key) {
+  if (!confirm(`Деактивировать ключ ${key}?`)) return;
+  await fetch(`/api/admin/keys/${key}`, { method: 'DELETE', headers: { 'X-Admin-Token': adminToken } });
+  loadKeys();
+}
+
+async function reactivateKey(key) {
+  await fetch(`/api/admin/keys/${key}/reactivate`, { method: 'POST', headers: { 'X-Admin-Token': adminToken } });
+  loadKeys();
+}
+
+function showAdminTab(tab) {
+  ['keys','stats','logs'].forEach(t => {
+    document.getElementById(`tab-${t}-content`).style.display = t===tab ? 'block' : 'none';
+    const btn = document.getElementById(`tab-${t}`);
+    if(btn) {
+      btn.style.background = t===tab ? 'rgba(124,106,255,.15)' : 'var(--surface)';
+      btn.style.borderColor = t===tab ? 'rgba(124,106,255,.3)' : 'var(--border)';
+      btn.style.color = t===tab ? 'var(--accent)' : 'var(--muted)';
+    }
+  });
+  if(tab==='stats') loadStats();
+  if(tab==='logs') loadStats();
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch('/api/admin/stats', { headers: { 'X-Admin-Token': adminToken } });
+    const data = await res.json();
+    // Wrong questions
+    document.getElementById('statsContent').innerHTML = `
+      <div class="table-wrap" style="margin-bottom:20px">
+        <table>
+          <thead><tr><th>ID вопроса</th><th>Неправильных</th><th>Всего ответов</th><th>% ошибок</th></tr></thead>
+          <tbody>
+            ${data.top_wrong_questions.map(r => `
+              <tr>
+                <td style="font-family:'Space Mono',monospace;color:var(--accent)">#${r.question_id}</td>
+                <td style="color:var(--error);font-weight:700">${r.wrong}</td>
+                <td style="color:var(--muted)">${r.total}</td>
+                <td><span style="color:${r.wrong/r.total>0.5?'var(--error)':'var(--warning)'}">${Math.round(r.wrong/r.total*100)}%</span></td>
+              </tr>`).join('')}
+            ${data.top_wrong_questions.length===0 ? '<tr><td colspan="4" style="text-align:center;color:var(--muted);font-family:Space Mono,monospace;font-size:12px;padding:24px">Нет данных</td></tr>' : ''}
+          </tbody>
+        </table>
+      </div>`;
+    // Logs
+    document.getElementById('logsContent').innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Время</th><th>Ключ</th><th>IP</th><th>Статус</th><th>Детали</th></tr></thead>
+          <tbody>
+            ${data.recent_logs.map(r => {
+              const d = new Date(r.created_at);
+              const badge = r.status==='success' ? 'badge-active' : r.status==='fail' ? 'badge-inactive' : 'badge-pending';
+              return `<tr>
+                <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">${d.toLocaleString('ru')}</td>
+                <td><span class="key-code">${r.key||'—'}</span></td>
+                <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">${r.ip||'—'}</td>
+                <td><span class="badge ${badge}">${r.status}</span></td>
+                <td style="font-size:12px;color:var(--muted)">${r.detail||''}</td>
+              </tr>`;
+            }).join('')}
+            ${data.recent_logs.length===0 ? '<tr><td colspan="5" style="text-align:center;color:var(--muted);font-family:Space Mono,monospace;font-size:12px;padding:24px">Нет логов</td></tr>' : ''}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) { console.error(e); }
+}
+
+function adminLogout() {
+  sessionStorage.clear();
+  adminToken = null;
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('adminWrap').style.display = 'none';
+}
+
+// Auto-login if token in session
+window.addEventListener('load', () => {
+  const t = sessionStorage.getItem('admin_token');
+  if (t) { adminToken = t; showAdmin(); }
+});
+</script>
+</body>
+</html>
