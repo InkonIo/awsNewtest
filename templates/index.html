@@ -408,13 +408,28 @@
   });
 
   (function detectDevTools() {
+    // На мобиле не запускаем — там нет девтулзов, а браузерный UI даёт ложное срабатывание
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) return;
+
     const overlay = document.createElement('div');
     overlay.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:#0a0a0f;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;';
-    overlay.innerHTML = '<div style="font-size:64px;margin-bottom:16px">🚫</div><div style="font-size:28px;font-weight:900;color:#ff4d6d;margin-bottom:12px">Закрой DevTools</div><div style="font-size:15px;color:#e8e8f0;max-width:400px;line-height:1.6">Использование инструментов разработчика запрещено.<br>Закрой консоль чтобы продолжить.</div><div style="margin-top:24px;font-size:12px;color:#5a5a7a;font-family:Space Mono,monospace">@Inkonio — ExamPrep</div>';
+    overlay.innerHTML = `
+      <div style="font-size:64px;margin-bottom:16px">🚫</div>
+      <div style="font-size:28px;font-weight:900;color:#ff4d6d;margin-bottom:12px">Закрой DevTools</div>
+      <div style="font-size:15px;color:#e8e8f0;max-width:400px;line-height:1.6">
+        Использование инструментов разработчика запрещено.<br>Закрой консоль чтобы продолжить.
+      </div>
+      <button onclick="window.location.href='/'" style="margin-top:32px;padding:14px 32px;background:linear-gradient(135deg,#7c6aff,#9b59ff);border:none;border-radius:10px;color:white;font-size:15px;font-weight:700;font-family:Syne,sans-serif;cursor:pointer;letter-spacing:1px;">
+        Ко входу
+      </button>
+      <div style="margin-top:20px;font-size:12px;color:#5a5a7a;font-family:Space Mono,monospace">@Inkonio — ExamPrep</div>
+    `;
     document.body.appendChild(overlay);
     let open = false;
     setInterval(() => {
-      const isOpen = window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160;
+      const threshold = 160;
+      const isOpen = (window.outerWidth - window.innerWidth > threshold) || (window.outerHeight - window.innerHeight > threshold);
       if (isOpen && !open) { open = true; overlay.style.display = 'flex'; }
       else if (!isOpen && open) { open = false; overlay.style.display = 'none'; }
     }, 500);
