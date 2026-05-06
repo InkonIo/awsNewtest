@@ -3,9 +3,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from contextlib import asynccontextmanager
-import asyncpg, os, secrets, string
+import asyncpg, os, secrets, string, json
 from datetime import datetime, timedelta
 from collections import defaultdict
 from dotenv import load_dotenv
@@ -18,9 +18,9 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 pool = None
 
 # ── Rate limiting (in-memory) ────────────────────────────────────────────────
-login_attempts: dict = defaultdict(list)  # ip -> [timestamps]
-RATE_LIMIT = 5       # max attempts
-RATE_WINDOW = 300    # seconds (5 min)
+login_attempts: dict = defaultdict(list)
+RATE_LIMIT = 5
+RATE_WINDOW = 300
 
 def check_rate_limit(ip: str):
     now = datetime.utcnow()
@@ -61,7 +61,6 @@ async def lifespan(app: FastAPI):
                 last_streak_date DATE
             )
         """)
-        # Login logs
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS login_logs (
                 id SERIAL PRIMARY KEY,
@@ -73,7 +72,6 @@ async def lifespan(app: FastAPI):
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
-        # Question stats (which questions answered wrong most)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS question_stats (
                 id SERIAL PRIMARY KEY,
@@ -83,7 +81,6 @@ async def lifespan(app: FastAPI):
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
-        # Bookmarks
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS bookmarks (
                 id SERIAL PRIMARY KEY,
@@ -93,7 +90,6 @@ async def lifespan(app: FastAPI):
                 UNIQUE(key, question_id)
             )
         """)
-        # Leaderboard scores
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS scores (
                 id SERIAL PRIMARY KEY,
@@ -103,6 +99,17 @@ async def lifespan(app: FastAPI):
                 total_answered INTEGER DEFAULT 0,
                 streak_days INTEGER DEFAULT 0,
                 updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        # ── Таблица вопросов ──────────────────────────────────────────────
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS questions (
+                id INTEGER PRIMARY KEY,
+                topic VARCHAR(255) NOT NULL,
+                question TEXT NOT NULL,
+                options JSONB NOT NULL,
+                correct INTEGER NOT NULL,
+                explanation TEXT
             )
         """)
     yield
@@ -132,7 +139,15 @@ class BookmarkToggle(BaseModel):
     question_id: int
 
 class PingTime(BaseModel):
-    seconds: int  # time spent in this session chunk
+    seconds: int
+
+class QuestionIn(BaseModel):
+    id: int
+    topic: str
+    question: str
+    options: List[str]
+    correct: int
+    explanation: Optional[str] = None
 
 # ── Pages ─────────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
@@ -146,6 +161,45 @@ async def quiz(request: Request):
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
+
+# ── Questions API ─────────────────────────────────────────────────────────────
+@app.get("/api/questions")
+async def get_questions():
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT * FROM questions ORDER BY id")
+        return [
+            {
+                "id": r["id"],
+                "topic": r["topic"],
+                "question": r["question"],
+                "options": json.loads(r["options"]) if isinstance(r["options"], str) else r["options"],
+                "correct": r["correct"],
+                "explanation": r["explanation"]
+            }
+            for r in rows
+        ]
+
+@app.post("/api/admin/questions")
+async def upsert_questions(questions: List[QuestionIn], request: Request):
+    """Загружает/обновляет вопросы через админку"""
+    check_admin(request)
+    async with pool.acquire() as conn:
+        for q in questions:
+            await conn.execute("""
+                INSERT INTO questions (id, topic, question, options, correct, explanation)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                ON CONFLICT (id) DO UPDATE SET
+                    topic = $2, question = $3, options = $4,
+                    correct = $5, explanation = $6
+            """, q.id, q.topic, q.question, json.dumps(q.options, ensure_ascii=False), q.correct, q.explanation)
+    return {"ok": True, "count": len(questions)}
+
+@app.delete("/api/admin/questions/{qid}")
+async def delete_question(qid: int, request: Request):
+    check_admin(request)
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM questions WHERE id=$1", qid)
+    return {"ok": True}
 
 # ── Auth API ──────────────────────────────────────────────────────────────────
 @app.post("/api/login")
@@ -185,7 +239,6 @@ async def login(data: KeyLogin, request: Request):
                 WHERE key=$6
             """, now, expires_at, session_token, now, data.fingerprint, data.key.strip().upper())
         else:
-            # Update streak
             today = now.date()
             last_date = row["last_streak_date"]
             streak = row["streak_days"] or 0
@@ -202,7 +255,6 @@ async def login(data: KeyLogin, request: Request):
 
         await log("success")
 
-        # Upsert leaderboard entry
         key_upper = data.key.strip().upper()
         await conn.execute("""
             INSERT INTO scores (key, owner_name) VALUES ($1, $2)
@@ -248,10 +300,7 @@ async def verify_session(request: Request):
 # ── Stats & Gamification API ──────────────────────────────────────────────────
 @app.post("/api/answer")
 async def log_answer(data: AnswerLog, request: Request):
-    """Called from frontend after each answer"""
     body = await request.json()
-    key = body.get("key", data.question_id)  # re-read from body
-    # Actually read full body
     key = body.get("key")
     if not key:
         raise HTTPException(status_code=401, detail="Нет ключа")
@@ -260,7 +309,6 @@ async def log_answer(data: AnswerLog, request: Request):
             INSERT INTO question_stats (question_id, key, correct)
             VALUES ($1, $2, $3)
         """, data.question_id, key, data.correct)
-        # Update leaderboard
         if data.correct:
             await conn.execute("""
                 INSERT INTO scores (key, total_correct, total_answered, updated_at)
@@ -282,7 +330,6 @@ async def log_answer(data: AnswerLog, request: Request):
 
 @app.post("/api/ping")
 async def ping_time(request: Request):
-    """Frontend pings every 30s to track time on site"""
     body = await request.json()
     key = body.get("key")
     seconds = int(body.get("seconds", 30))
@@ -372,7 +419,6 @@ async def list_keys(request: Request):
 async def admin_stats(request: Request):
     check_admin(request)
     async with pool.acquire() as conn:
-        # Top wrong questions
         top_wrong = await conn.fetch("""
             SELECT question_id,
                    COUNT(*) FILTER (WHERE correct=false) as wrong,
@@ -382,12 +428,10 @@ async def admin_stats(request: Request):
             ORDER BY wrong DESC
             LIMIT 10
         """)
-        # Recent logins
         recent_logs = await conn.fetch("""
             SELECT * FROM login_logs
             ORDER BY created_at DESC LIMIT 20
         """)
-        # Summary
         summary = await conn.fetchrow("""
             SELECT
                 COUNT(*) as total_keys,

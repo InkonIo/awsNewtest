@@ -351,7 +351,7 @@ async function init(){
     const days=Math.ceil((new Date(expires)-new Date())/86400000);
     document.getElementById('expiresLabel').textContent=`ещё ${days} дн.`;
   }
-  const r=await fetch('/static/questions.json');
+  const r = await fetch('/api/questions');
   questions=await r.json();
   // Load bookmarks
   try{
